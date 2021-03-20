@@ -16,7 +16,7 @@ class Session:
             current_courier.id = courier["courier_id"]
             current_courier.type = courier["courier_type"]
             current_courier.regions = ';'.join(map(str, courier["regions"]))
-            current_courier.regions = ';'.join(courier["working_hours"])
+            current_courier.working_hours = ';'.join(courier["working_hours"])
             self.session.add(current_courier)
             self.commit()
 
