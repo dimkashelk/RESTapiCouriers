@@ -27,9 +27,34 @@ class Session:
     def set_args_courier(self, courier_id, args):
         current_courier = self.get_courier(courier_id)
         for i in args.keys():
-            eval(f'current_courier.{i} = {";".join(map(str, args[i]))}')
+            if i == 'courier_type':
+                current_courier.type = args[i]
+            elif i == 'regions':
+                current_courier.regions = ';'.join(map(str, args[i]))
+            elif i == 'working_hours':
+                current_courier.working_hours = ';'.join(map(str, args[i]))
             self.commit()
         return current_courier
 
     def commit(self):
         self.session.commit()
+
+    def to_dict(self, courier_id):
+        current_courier = self.get_courier(courier_id)
+        res = {"courier_id": current_courier.id,
+               "courier_type": current_courier.type}
+        if current_courier.regions == '':
+            res['regions'] = []
+        else:
+            res['regions'] = list(map(int, current_courier.regions.split(';')))
+        if current_courier.working_hours == '':
+            res['working_hours'] = []
+        else:
+            res['working_hours'] = list(current_courier.working_hours.split(';'))
+        return res
+
+    def get_count_couriers(self):
+        dop = self.session.query(couriers.Couriers).order_by(couriers.Couriers.id.desc()).first()
+        if dop is None:
+            return 0
+        return dop.id

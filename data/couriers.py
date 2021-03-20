@@ -6,6 +6,6 @@ class Couriers(SqlAlchemyBase):
     __tablename__ = 'couriers'
 
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
-    type = sqlalchemy.Column(sqlalchemy.String)
-    regions = sqlalchemy.Column(sqlalchemy.String)
-    working_hours = sqlalchemy.Column(sqlalchemy.String)
+    type = sqlalchemy.Column(sqlalchemy.String, default='')
+    regions = sqlalchemy.Column(sqlalchemy.String, default='')
+    working_hours = sqlalchemy.Column(sqlalchemy.String, default='')
