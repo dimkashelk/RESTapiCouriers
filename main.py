@@ -21,6 +21,9 @@ def check_params(req, params):
     for courier in req:
         fields = [False for _ in range(len(params))]
         fl = True
+        if session.get_courier(courier["courier_id"]) is not None:
+            id_couriers.append({"id": courier["courier_id"]})
+            continue
         for ind, field in enumerate(courier.keys()):
             if field in dop:
                 fields[ind] = True
