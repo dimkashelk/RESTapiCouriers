@@ -1,4 +1,5 @@
 from data import couriers, db_session, orders
+from datetime import time
 
 
 class Session:
@@ -76,3 +77,41 @@ class Session:
 
     def get_order(self, id_order):
         return self.session.query(orders.Order).filter(orders.Order.id == id_order).first()
+
+    def get_orders(self, id_courier):
+        courier = self.get_courier(id_courier)
+        max_weight = 0
+        if courier.type == 'foot':
+            max_weight = 10
+        elif courier.type == 'bike':
+            max_weight = 15
+        elif courier.type == 'car':
+            max_weight = 50
+        id_orders = list(
+            map(lambda x: x.id,
+                self.session.query(orders.Order).filter(orders.Order.weight <= max_weight)))
+        try:
+            regions = list(map(int, courier.regions.split(';')))
+        except AttributeError:
+            regions = [courier.regions]
+        id_orders = list(filter(lambda x: self.get_order(x).region in regions, id_orders))
+        working_hours = list(courier.working_hours.split(';'))
+        end_orders = set()
+        for t in working_hours:
+            begin = time(hour=int(t.split('-')[0].split(':')[0]),
+                         minute=int(t.split('-')[0].split(':')[1]))
+            end = time(hour=int(t.split('-')[1].split(':')[0]),
+                       minute=int(t.split('-')[1].split(':')[1]))
+            for j in id_orders:
+                order = self.get_order(j)
+                hours = list(order.delivery_hours.split(';'))
+                for hour in hours:
+                    b = time(hour=int(hour.split('-')[0].split(':')[0]),
+                             minute=int(hour.split('-')[0].split(':')[1]))
+                    e = time(hour=int(hour.split('-')[1].split(':')[0]),
+                             minute=int(hour.split('-')[1].split(':')[1]))
+                    if begin <= b <= end and begin <= e <= end:
+                        end_orders.add(j)
+        courier.orders = ';'.join(map(str, end_orders))
+        self.session.commit()
+        return end_orders

@@ -7,7 +7,6 @@ session = Session()
 
 
 # TODO: add rating and earnings
-# TODO: POST /orders/assign
 # TODO: POST /orders/complete
 # TODO: GET /couriers/$courier_id
 
@@ -53,13 +52,14 @@ def couriers():
             id_couriers.append({"id": courier["courier_id"]})
             continue
         for ind, field in enumerate(courier.keys()):
-            if field in ['courier_type', 'regions', 'working_hours']:
+            if field in ['courier_id', 'courier_type', 'regions', 'working_hours']:
                 fields[ind] = True
             else:
                 id_couriers.append({"id": courier["courier_id"]})
                 fl = False
                 break
         if fl:
+            print(fields)
             if False in fields:
                 id_couriers.append({"id": courier["courier_id"]})
     if len(id_couriers) > 0:
@@ -182,6 +182,37 @@ def orders():
         return jsonify({"validation_error": {"orders": id_orders}}), 400
     session.add_orders(data)
     return jsonify({"orders": list({"id": order["order_id"]} for order in data)}), 201
+
+
+@app.route('/orders/assign', methods=["POST"])
+def assign():
+    """
+    /orders/assign:
+        post:
+            description: 'Assign orders to a courier by id'
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/OrdersAssignPostRequest'
+            responses:
+                '200':
+                    description: 'OK'
+                    content:
+                        application/json:
+                            schema:
+                                allOf:
+                                  - $ref: '#/components/schemas/OrdersIds'
+                                  - $ref: '#/components/schemas/AssignTime'
+                '400':
+                    description: 'Bad request'
+    :return:
+    """
+    courier_id = request.json["courier_id"]
+    courier = session.get_courier(courier_id)
+    if courier is None:
+        return jsonify({"validation_error": f"Bad request"}), 400
+    return jsonify({"orders": [{"id": id} for id in session.get_orders(courier_id)]}), 200
 
 
 if __name__ == '__main__':

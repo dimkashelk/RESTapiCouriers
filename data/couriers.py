@@ -9,4 +9,5 @@ class Couriers(SqlAlchemyBase):
     type = sqlalchemy.Column(sqlalchemy.String, default='')
     regions = sqlalchemy.Column(sqlalchemy.String, default='')
     working_hours = sqlalchemy.Column(sqlalchemy.String, default='')
+    orders = sqlalchemy.Column(sqlalchemy.String, default='')
     earnings = sqlalchemy.Column(sqlalchemy.String, default=0)
