@@ -39,7 +39,7 @@ class Session:
     def commit(self):
         self.session.commit()
 
-    def to_dict(self, courier_id):
+    def to_dict(self, courier_id, type="CourierItem"):
         current_courier = self.get_courier(courier_id)
         res = {"courier_id": current_courier.id,
                "courier_type": current_courier.type}
@@ -51,6 +51,10 @@ class Session:
             res['working_hours'] = []
         else:
             res['working_hours'] = list(current_courier.working_hours.split(';'))
+        if type == "CourierGetResponse":
+            # TODO: rating
+            res['rating'] = 0
+            res['earnings'] = current_courier.earnings
         return res
 
     def get_count_couriers(self):
