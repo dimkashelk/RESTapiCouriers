@@ -212,11 +212,11 @@ def assign():
     courier = session.get_courier(courier_id)
     if courier is None:
         return jsonify({"validation_error": f"Bad request"}), 400
-    if courier.assign_time == '':
-        courier.assign_time = datetime.datetime.utcnow().isoformat("T") + "Z"
-        session.commit()
-    return jsonify({"orders": [{"id": id} for id in session.get_orders(courier_id)],
-                    "assign_time": courier.assign_time}), 200
+    orders_id = session.get_orders(courier_id)
+    if len(orders_id) == 0:
+        return jsonify({"orders": []}), 200
+    return jsonify({"orders": [{"id": i} for i in orders_id],
+                    "assign_time": courier.assign_time})
 
 
 @app.route('/orders/complete', methods=["POST"])
