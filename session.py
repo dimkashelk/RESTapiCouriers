@@ -111,7 +111,23 @@ class Session:
                     e = time(hour=int(hour.split('-')[1].split(':')[0]),
                              minute=int(hour.split('-')[1].split(':')[1]))
                     if begin <= b <= end and begin <= e <= end and order.delivered == '' and not order.active:
+                        order = self.get_order(j)
+                        order.active = True
+                        self.session.commit()
                         end_orders.add(j)
         courier.orders = ';'.join(map(str, end_orders))
         self.session.commit()
         return end_orders
+
+    def set_time_complete_order(self, id_courier, id_order, time_complete):
+        courier = self.get_courier(id_courier)
+        try:
+            orders = list(map(int, courier.orders.split(';')))
+        except AttributeError:
+            orders = [courier.orders]
+        if id_order in orders:
+            order = self.get_order(id_order)
+            order.delivered = time_complete
+            self.session.commit()
+            return 200
+        return 400

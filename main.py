@@ -8,7 +8,6 @@ session = Session()
 
 
 # TODO: add rating and earnings
-# TODO: POST /orders/complete
 # TODO: GET /couriers/$courier_id
 
 
@@ -218,6 +217,33 @@ def assign():
         session.commit()
     return jsonify({"orders": [{"id": id} for id in session.get_orders(courier_id)],
                     "assign_time": courier.assign_time}), 200
+
+
+@app.route('/orders/complete', methods=["POST"])
+def complete():
+    """
+    /orders/complete:
+        post:
+            description: 'Marks orders as completed'
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/OrdersCompletePostRequest'
+            responses:
+                '200':
+                    description: 'OK'
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/OrdersCompletePostResponse'
+                '400':
+                    description: 'Bad request'
+    :return:
+    """
+    data = request.json
+    res = session.set_time_complete_order(data["courier_id"], data["order_id"], data["complete_time"])
+    return jsonify({"order_id": data["order_id"]} if res == 200 else {"complete_error": "Bad request"}), res
 
 
 if __name__ == '__main__':
