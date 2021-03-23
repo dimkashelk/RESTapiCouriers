@@ -1,3 +1,4 @@
+import datetime
 from data import couriers, db_session, orders
 from datetime import time
 
@@ -96,7 +97,10 @@ class Session:
             regions = [courier.regions]
         id_orders = list(filter(lambda x: self.get_order(x).region in regions, id_orders))
         working_hours = list(courier.working_hours.split(';'))
+        if working_hours[0] == '':
+            working_hours = []
         end_orders = set()
+        fl = False
         for t in working_hours:
             begin = time(hour=int(t.split('-')[0].split(':')[0]),
                          minute=int(t.split('-')[0].split(':')[1]))
@@ -110,14 +114,24 @@ class Session:
                              minute=int(hour.split('-')[0].split(':')[1]))
                     e = time(hour=int(hour.split('-')[1].split(':')[0]),
                              minute=int(hour.split('-')[1].split(':')[1]))
-                    if begin <= b <= end and begin <= e <= end and order.delivered == '' and not order.active:
+                    if begin <= b <= end and begin <= e <= end and order.delivered == '' \
+                            or order.active == courier.id:
+                        if order.active != courier.id:
+                            fl = True
                         order = self.get_order(j)
-                        order.active = True
+                        order.active = courier.id
                         self.session.commit()
                         end_orders.add(j)
+        if fl:
+            courier.assign_time = datetime.datetime.utcnow().isoformat("T") + "Z"
         courier.orders = ';'.join(map(str, end_orders))
         self.session.commit()
-        return end_orders
+        final_orders = []
+        for i in end_orders:
+            order = self.get_order(i)
+            if order.delivered == '':
+                final_orders.append(i)
+        return final_orders
 
     def set_time_complete_order(self, id_courier, id_order, time_complete):
         courier = self.get_courier(id_courier)
