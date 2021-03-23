@@ -1,5 +1,6 @@
 from flask import Flask, request, abort, jsonify, Response
 from session import Session
+import datetime
 
 app = Flask(__name__)
 
@@ -212,7 +213,11 @@ def assign():
     courier = session.get_courier(courier_id)
     if courier is None:
         return jsonify({"validation_error": f"Bad request"}), 400
-    return jsonify({"orders": [{"id": id} for id in session.get_orders(courier_id)]}), 200
+    if courier.assign_time == '':
+        courier.assign_time = datetime.datetime.utcnow().isoformat("T") + "Z"
+        session.commit()
+    return jsonify({"orders": [{"id": id} for id in session.get_orders(courier_id)],
+                    "assign_time": courier.assign_time}), 200
 
 
 if __name__ == '__main__':

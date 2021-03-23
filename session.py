@@ -110,7 +110,7 @@ class Session:
                              minute=int(hour.split('-')[0].split(':')[1]))
                     e = time(hour=int(hour.split('-')[1].split(':')[0]),
                              minute=int(hour.split('-')[1].split(':')[1]))
-                    if begin <= b <= end and begin <= e <= end:
+                    if begin <= b <= end and begin <= e <= end and order.delivered == '' and not order.active:
                         end_orders.add(j)
         courier.orders = ';'.join(map(str, end_orders))
         self.session.commit()

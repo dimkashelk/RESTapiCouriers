@@ -11,3 +11,4 @@ class Couriers(SqlAlchemyBase):
     working_hours = sqlalchemy.Column(sqlalchemy.String, default='')
     orders = sqlalchemy.Column(sqlalchemy.String, default='')
     earnings = sqlalchemy.Column(sqlalchemy.String, default=0)
+    assign_time = sqlalchemy.Column(sqlalchemy.String, default='')
