@@ -1,5 +1,6 @@
 from flask import Flask, request, abort, jsonify, Response
 from session import Session
+import datetime
 
 app = Flask(__name__)
 
@@ -7,34 +8,7 @@ session = Session()
 
 
 # TODO: add rating and earnings
-# TODO: POST /orders
-# TODO: POST /orders/assign
-# TODO: POST /orders/assign
-# TODO: POST /orders/complete
 # TODO: GET /couriers/$courier_id
-
-
-def check_params(req, params):
-    """Checking courier params"""
-    id_couriers = []
-    dop = params
-    for courier in req:
-        fields = [False for _ in range(len(params))]
-        fl = True
-        if session.get_courier(courier["courier_id"]) is not None:
-            id_couriers.append({"id": courier["courier_id"]})
-            continue
-        for ind, field in enumerate(courier.keys()):
-            if field in dop:
-                fields[ind] = True
-            else:
-                id_couriers.append({"id": courier["courier_id"]})
-                fl = False
-                break
-        if fl:
-            if False in fields:
-                id_couriers.append({"id": courier["courier_id"]})
-    return id_couriers
 
 
 @app.route('/couriers', methods=["POST"])
@@ -70,7 +44,24 @@ def couriers():
     :return:
     """
     data = request.json['data']
-    id_couriers = check_params(data, ['courier_id', 'courier_type', 'regions', 'working_hours'])
+    id_couriers = []
+    for courier in data:
+        fields = [False, False, False, False]
+        fl = True
+        if session.get_courier(courier["courier_id"]) is not None:
+            id_couriers.append({"id": courier["courier_id"]})
+            continue
+        for ind, field in enumerate(courier.keys()):
+            if field in ['courier_id', 'courier_type', 'regions', 'working_hours']:
+                fields[ind] = True
+            else:
+                id_couriers.append({"id": courier["courier_id"]})
+                fl = False
+                break
+        if fl:
+            print(fields)
+            if False in fields:
+                id_couriers.append({"id": courier["courier_id"]})
     if len(id_couriers) > 0:
         return jsonify({"validation_error": {"couriers": id_couriers}}), 400
     session.add_couriers(data)
@@ -134,6 +125,125 @@ def edit_courier(id_courier):
         return jsonify(session.to_dict(id_courier, "CourierItem")), 200
     elif request.method == "GET":
         return jsonify(session.to_dict(id_courier, "CourierGetResponse")), 200
+
+
+@app.route('/orders', methods=["POST"])
+def orders():
+    """
+    /orders:
+        post:
+            description: 'Import orders'
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/OrdersPostRequest'
+            responses:
+                '201':
+                    description: 'Created'
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/OrdersIds'
+                '400':
+                    description: 'Bad request'
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                additionalProperties: false
+                                properties:
+                                    validation_error:
+                                        $ref: '#/components/schemas/OrdersIds'
+                                required:
+                                  - validation_error
+    :return:
+    """
+    data = request.json["data"]
+    id_orders = []
+    for order in data:
+        fields = [False, False, False, False]
+        fl = True
+        if session.get_order(order['order_id']) is not None:
+            id_orders.append({"id": order["order_id"]})
+        for ind, field in enumerate(order.keys()):
+            if field in ['order_id', 'weight', 'region', 'delivery_hours']:
+                fields[ind] = True
+            else:
+                id_orders.append({"id": order["order_id"]})
+                fl = False
+                break
+        if fl:
+            if False in fields:
+                id_orders.append({"id": order["order_id"]})
+        if not 0.01 <= order['weight'] <= 50:
+            id_orders.append({"id": order["order_id"]})
+    if len(id_orders) > 0:
+        return jsonify({"validation_error": {"orders": id_orders}}), 400
+    session.add_orders(data)
+    return jsonify({"orders": list({"id": order["order_id"]} for order in data)}), 201
+
+
+@app.route('/orders/assign', methods=["POST"])
+def assign():
+    """
+    /orders/assign:
+        post:
+            description: 'Assign orders to a courier by id'
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/OrdersAssignPostRequest'
+            responses:
+                '200':
+                    description: 'OK'
+                    content:
+                        application/json:
+                            schema:
+                                allOf:
+                                  - $ref: '#/components/schemas/OrdersIds'
+                                  - $ref: '#/components/schemas/AssignTime'
+                '400':
+                    description: 'Bad request'
+    :return:
+    """
+    courier_id = request.json["courier_id"]
+    courier = session.get_courier(courier_id)
+    if courier is None:
+        return jsonify({"validation_error": f"Bad request"}), 400
+    if courier.assign_time == '':
+        courier.assign_time = datetime.datetime.utcnow().isoformat("T") + "Z"
+        session.commit()
+    return jsonify({"orders": [{"id": id} for id in session.get_orders(courier_id)],
+                    "assign_time": courier.assign_time}), 200
+
+
+@app.route('/orders/complete', methods=["POST"])
+def complete():
+    """
+    /orders/complete:
+        post:
+            description: 'Marks orders as completed'
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/OrdersCompletePostRequest'
+            responses:
+                '200':
+                    description: 'OK'
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/OrdersCompletePostResponse'
+                '400':
+                    description: 'Bad request'
+    :return:
+    """
+    data = request.json
+    res = session.set_time_complete_order(data["courier_id"], data["order_id"], data["complete_time"])
+    return jsonify({"order_id": data["order_id"]} if res == 200 else {"complete_error": "Bad request"}), res
 
 
 if __name__ == '__main__':
