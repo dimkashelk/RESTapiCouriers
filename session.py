@@ -101,6 +101,7 @@ class Session:
             working_hours = []
         end_orders = set()
         fl = False
+        time_to_assign = datetime.datetime.utcnow().isoformat("T") + "Z"
         for t in working_hours:
             begin = time(hour=int(t.split('-')[0].split(':')[0]),
                          minute=int(t.split('-')[0].split(':')[1]))
@@ -120,10 +121,12 @@ class Session:
                             fl = True
                         order = self.get_order(j)
                         order.active = courier.id
+                        if order.assign_time == '':
+                            order.assign_time = time_to_assign
                         self.session.commit()
                         end_orders.add(j)
         if fl:
-            courier.assign_time = datetime.datetime.utcnow().isoformat("T") + "Z"
+            courier.assign_time = time_to_assign
         courier.orders = ';'.join(map(str, end_orders))
         self.session.commit()
         final_orders = []

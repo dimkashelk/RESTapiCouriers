@@ -11,3 +11,4 @@ class Order(SqlAlchemyBase):
     delivery_hours = sqlalchemy.Column(sqlalchemy.String, default='')
     active = sqlalchemy.Column(sqlalchemy.Integer, default=0)
     delivered = sqlalchemy.Column(sqlalchemy.String, default='')
+    assign_time = sqlalchemy.Column(sqlalchemy.String, default='')
