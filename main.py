@@ -1,10 +1,12 @@
-from flask import Flask, request, abort, jsonify, Response
+from flask import Flask, request, jsonify
 from session import Session
-import datetime
+import logging
 
 app = Flask(__name__)
 
 session = Session()
+
+logging.basicConfig(level=logging.INFO, filename='app.log')
 
 
 @app.route('/couriers', methods=["POST"])

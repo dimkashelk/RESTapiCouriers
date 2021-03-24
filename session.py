@@ -179,6 +179,8 @@ class Session:
 
     def set_time_complete_order(self, id_courier, id_order, time_complete):
         courier = self.get_courier(id_courier)
+        if courier is None:
+            return 400
         try:
             orders = list(map(int, courier.orders.split(';')))
         except Exception:
