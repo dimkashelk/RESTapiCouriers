@@ -7,10 +7,6 @@ app = Flask(__name__)
 session = Session()
 
 
-# TODO: add rating and earnings
-# TODO: GET /couriers/$courier_id
-
-
 @app.route('/couriers', methods=["POST"])
 def couriers():
     """
@@ -59,7 +55,6 @@ def couriers():
                 fl = False
                 break
         if fl:
-            print(fields)
             if False in fields:
                 id_couriers.append({"id": courier["courier_id"]})
     if len(id_couriers) > 0:

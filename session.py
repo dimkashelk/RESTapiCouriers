@@ -49,14 +49,36 @@ class Session:
         if current_courier.regions == '':
             res['regions'] = []
         else:
-            res['regions'] = list(map(int, current_courier.regions.split(';')))
+            try:
+                res['regions'] = list(map(int, current_courier.regions.split(';')))
+            except AttributeError:
+                res['regions'] = [current_courier.regions]
         if current_courier.working_hours == '':
             res['working_hours'] = []
         else:
             res['working_hours'] = list(current_courier.working_hours.split(';'))
         if type == "CourierGetResponse":
-            # TODO: rating
-            res['rating'] = 0
+            try:
+                id_orders = list(map(int, current_courier.orders.split(';')))
+            except AttributeError:
+                id_orders = [current_courier.orders]
+            sr_times = []
+            for i in res['regions']:
+                orders_in_current_region = list(filter(lambda x: self.get_order(x).region == i, id_orders))
+                sum_time = 0
+                count = 0
+                pr_time = self.get_order(orders_in_current_region[0]).assign_time
+                for order in orders_in_current_region:
+                    order = self.get_order(order)
+                    if order.delivered != '':
+                        count += 1
+                        sum_time += (datetime.datetime.strptime(order.delivered, '%Y-%m-%dT%H:%M:%S.%fZ') -
+                                     datetime.datetime.strptime(pr_time, '%Y-%m-%dT%H:%M:%S.%fZ')).seconds
+                        pr_time = order.delivered
+                if count > 0:
+                    sr_times.append(sum_time / count)
+            if len(sr_times) > 0:
+                res['rating'] = (60 * 60 - min(min(sr_times), 60 * 60)) / (60 * 60) * 5
             res['earnings'] = current_courier.earnings
         return res
 
@@ -145,6 +167,12 @@ class Session:
         if id_order in orders:
             order = self.get_order(id_order)
             order.delivered = time_complete
+            if courier.type == 'foot':
+                courier.earnings = courier.earnings + 500 * 2
+            elif courier.type == 'bike':
+                courier.earnings = courier.earnings + 500 * 5
+            elif courier.type == 'car':
+                courier.earnings = courier.earnings + 500 * 9
             self.session.commit()
             return 200
         return 400
