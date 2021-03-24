@@ -37,6 +37,18 @@ class Session:
             elif i == 'working_hours':
                 current_courier.working_hours = ';'.join(map(str, args[i]))
             self.commit()
+        try:
+            id_orders = list(map(int, current_courier.orders.split(';')))
+        except Exception:
+            id_orders = [current_courier.orders]
+        if id_orders[0] != '':
+            for i in id_orders:
+                order = self.get_order(i)
+                if order.delivered == '':
+                    order.assign_time = ''
+                    order.active = 0
+                    self.session.commit()
+        self.get_orders(current_courier.id)
         return current_courier
 
     def commit(self):
@@ -49,14 +61,39 @@ class Session:
         if current_courier.regions == '':
             res['regions'] = []
         else:
-            res['regions'] = list(map(int, current_courier.regions.split(';')))
+            try:
+                res['regions'] = list(map(int, current_courier.regions.split(';')))
+            except AttributeError:
+                res['regions'] = [current_courier.regions]
         if current_courier.working_hours == '':
             res['working_hours'] = []
         else:
             res['working_hours'] = list(current_courier.working_hours.split(';'))
         if type == "CourierGetResponse":
-            # TODO: rating
-            res['rating'] = 0
+            try:
+                id_orders = list(map(int, current_courier.orders.split(';')))
+            except Exception:
+                id_orders = [current_courier.orders]
+            sr_times = []
+            if id_orders[0] != '':
+                for i in res['regions']:
+                    orders_in_current_region = list(filter(lambda x: self.get_order(x).region == i, id_orders))
+                    if len(orders_in_current_region) == 0:
+                        continue
+                    sum_time = 0
+                    count = 0
+                    pr_time = self.get_order(orders_in_current_region[0]).assign_time
+                    for order in orders_in_current_region:
+                        order = self.get_order(order)
+                        if order.delivered != '':
+                            count += 1
+                            sum_time += (datetime.datetime.strptime(order.delivered, '%Y-%m-%dT%H:%M:%S.%fZ') -
+                                         datetime.datetime.strptime(pr_time, '%Y-%m-%dT%H:%M:%S.%fZ')).seconds
+                            pr_time = order.delivered
+                    if count > 0:
+                        sr_times.append(sum_time / count)
+                if len(sr_times) > 0:
+                    res['rating'] = (60 * 60 - min(min(sr_times), 60 * 60)) / (60 * 60) * 5
             res['earnings'] = current_courier.earnings
         return res
 
@@ -91,16 +128,21 @@ class Session:
         id_orders = list(
             map(lambda x: x.id,
                 self.session.query(orders.Order).filter(orders.Order.weight <= max_weight)))
+        print(id_orders)
         try:
             regions = list(map(int, courier.regions.split(';')))
         except AttributeError:
             regions = [courier.regions]
+        print(regions)
         id_orders = list(filter(lambda x: self.get_order(x).region in regions, id_orders))
+        print(id_orders)
         working_hours = list(courier.working_hours.split(';'))
+        print(working_hours)
         if working_hours[0] == '':
             working_hours = []
         end_orders = set()
         fl = False
+        time_to_assign = datetime.datetime.utcnow().isoformat("T") + "Z"
         for t in working_hours:
             begin = time(hour=int(t.split('-')[0].split(':')[0]),
                          minute=int(t.split('-')[0].split(':')[1]))
@@ -115,15 +157,17 @@ class Session:
                     e = time(hour=int(hour.split('-')[1].split(':')[0]),
                              minute=int(hour.split('-')[1].split(':')[1]))
                     if begin <= b <= end and begin <= e <= end and order.delivered == '' \
-                            or order.active == courier.id:
+                            and order.active == 0 or order.active == courier.id:
                         if order.active != courier.id:
                             fl = True
                         order = self.get_order(j)
                         order.active = courier.id
+                        if order.assign_time == '':
+                            order.assign_time = time_to_assign
                         self.session.commit()
                         end_orders.add(j)
         if fl:
-            courier.assign_time = datetime.datetime.utcnow().isoformat("T") + "Z"
+            courier.assign_time = time_to_assign
         courier.orders = ';'.join(map(str, end_orders))
         self.session.commit()
         final_orders = []
@@ -137,11 +181,17 @@ class Session:
         courier = self.get_courier(id_courier)
         try:
             orders = list(map(int, courier.orders.split(';')))
-        except AttributeError:
+        except Exception:
             orders = [courier.orders]
         if id_order in orders:
             order = self.get_order(id_order)
             order.delivered = time_complete
+            if courier.type == 'foot':
+                courier.earnings = courier.earnings + 500 * 2
+            elif courier.type == 'bike':
+                courier.earnings = courier.earnings + 500 * 5
+            elif courier.type == 'car':
+                courier.earnings = courier.earnings + 500 * 9
             self.session.commit()
             return 200
         return 400
