@@ -117,7 +117,7 @@ def edit_courier(id_courier):
             if key not in ['courier_type', 'regions', 'working_hours']:
                 unknown_params.append(key)
         if len(unknown_params) > 0:
-            return jsonify({"validation_error": f"Bad request"}), 400
+            return jsonify({"validation_error": "Bad request"}), 400
         session.set_args_courier(id_courier, data)
         return jsonify(session.to_dict(id_courier, "CourierItem")), 200
     elif request.method == "GET":
@@ -208,7 +208,7 @@ def assign():
     courier_id = request.json["courier_id"]
     courier = session.get_courier(courier_id)
     if courier is None:
-        return jsonify({"validation_error": f"Bad request"}), 400
+        return jsonify({"validation_error": "Bad request"}), 400
     orders_id = session.get_orders(courier_id)
     if len(orders_id) == 0:
         return jsonify({"orders": []}), 200
