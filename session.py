@@ -128,16 +128,12 @@ class Session:
         id_orders = list(
             map(lambda x: x.id,
                 self.session.query(orders.Order).filter(orders.Order.weight <= max_weight)))
-        print(id_orders)
         try:
             regions = list(map(int, courier.regions.split(';')))
         except AttributeError:
             regions = [courier.regions]
-        print(regions)
         id_orders = list(filter(lambda x: self.get_order(x).region in regions, id_orders))
-        print(id_orders)
         working_hours = list(courier.working_hours.split(';'))
-        print(working_hours)
         if working_hours[0] == '':
             working_hours = []
         end_orders = set()
@@ -179,6 +175,8 @@ class Session:
 
     def set_time_complete_order(self, id_courier, id_order, time_complete):
         courier = self.get_courier(id_courier)
+        if courier is None:
+            return 400
         try:
             orders = list(map(int, courier.orders.split(';')))
         except Exception:
