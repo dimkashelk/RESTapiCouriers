@@ -117,10 +117,7 @@ def couriers():
             id_couriers.append(dop)
     if len(id_couriers) > 0:
         return jsonify({"validation_error": {"couriers": id_couriers}}), 400
-    try:
-        session.add_couriers(data)
-    except BaseException:
-        return jsonify({"validation_error": {"couriers": "Duplicate id's are present"}}), 400
+    session.add_couriers(data)
     return jsonify({"couriers": list({"id": courier["courier_id"]} for courier in data)}), 201
 
 

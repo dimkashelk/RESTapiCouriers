@@ -1,6 +1,7 @@
 import datetime
 from data import couriers, db_session, orders
 from datetime import time
+import json
 
 
 class Session:
@@ -18,8 +19,8 @@ class Session:
             current_courier = couriers.Couriers()
             current_courier.id = courier["courier_id"]
             current_courier.type = courier["courier_type"]
-            current_courier.regions = ';'.join(map(str, courier["regions"]))
-            current_courier.working_hours = ';'.join(courier["working_hours"])
+            current_courier.regions = json.dumps(courier["regions"])
+            current_courier.working_hours = json.dumps(courier["working_hours"])
             self.session.add(current_courier)
             self.commit()
 
@@ -57,25 +58,13 @@ class Session:
     def to_dict(self, courier_id, type="CourierItem"):
         current_courier = self.get_courier(courier_id)
         res = {"courier_id": current_courier.id,
-               "courier_type": current_courier.type}
-        if current_courier.regions == '':
-            res['regions'] = []
-        else:
-            try:
-                res['regions'] = list(map(int, current_courier.regions.split(';')))
-            except AttributeError:
-                res['regions'] = [current_courier.regions]
-        if current_courier.working_hours == '':
-            res['working_hours'] = []
-        else:
-            res['working_hours'] = list(current_courier.working_hours.split(';'))
+               "courier_type": current_courier.type,
+               'regions': json.loads(current_courier.regions),
+               'working_hours': json.loads(current_courier.working_hours)}
         if type == "CourierGetResponse":
-            try:
-                id_orders = list(map(int, current_courier.orders.split(';')))
-            except Exception:
-                id_orders = [current_courier.orders]
+            id_orders = json.loads(current_courier.orders)
             sr_times = []
-            if id_orders[0] != '':
+            if len(id_orders) > 0:
                 for i in res['regions']:
                     orders_in_current_region = list(filter(lambda x: self.get_order(x).region == i, id_orders))
                     if len(orders_in_current_region) == 0:
@@ -109,7 +98,7 @@ class Session:
             current_order.id = order["order_id"]
             current_order.weight = order["weight"]
             current_order.region = order["region"]
-            current_order.delivery_hours = ';'.join(order["delivery_hours"])
+            current_order.delivery_hours = json.dumps(order["delivery_hours"])
             self.session.add(current_order)
             self.session.commit()
 
@@ -126,16 +115,11 @@ class Session:
         elif courier.type == 'car':
             max_weight = 50
         id_orders = list(
-            map(lambda x: x.id,
-                self.session.query(orders.Order).filter(orders.Order.weight <= max_weight)))
-        try:
-            regions = list(map(int, courier.regions.split(';')))
-        except AttributeError:
-            regions = [courier.regions]
+            map(lambda x: x.id, self.session.query(orders.Order).filter(
+                orders.Order.weight <= max_weight)))
+        regions = json.loads(courier.regions)
         id_orders = list(filter(lambda x: self.get_order(x).region in regions, id_orders))
-        working_hours = list(courier.working_hours.split(';'))
-        if working_hours[0] == '':
-            working_hours = []
+        working_hours = json.loads(courier.working_hours)
         end_orders = set()
         fl = False
         time_to_assign = datetime.datetime.utcnow().isoformat("T") + "Z"
@@ -146,7 +130,7 @@ class Session:
                        minute=int(t.split('-')[1].split(':')[1]))
             for j in id_orders:
                 order = self.get_order(j)
-                hours = list(order.delivery_hours.split(';'))
+                hours = json.loads(order.delivery_hours)
                 for hour in hours:
                     b = time(hour=int(hour.split('-')[0].split(':')[0]),
                              minute=int(hour.split('-')[0].split(':')[1]))
@@ -164,7 +148,7 @@ class Session:
                         end_orders.add(j)
         if fl:
             courier.assign_time = time_to_assign
-        courier.orders = ';'.join(map(str, end_orders))
+        courier.orders = json.dumps(list(sorted(end_orders)))
         self.session.commit()
         final_orders = []
         for i in end_orders:
@@ -184,10 +168,7 @@ class Session:
             datetime.datetime.strptime(order.delivered, '%Y-%m-%dT%H:%M:%S.%fZ')
         except BaseException:
             return 400, {"complete_time": "Incorrect time"}
-        try:
-            orders = list(map(int, courier.orders.split(';')))
-        except Exception:
-            orders = [courier.orders]
+        orders = json.dumps(courier.orders)
         if order.delivered == '':
             if id_order in orders:
                 order.delivered = time_complete
