@@ -176,20 +176,28 @@ class Session:
     def set_time_complete_order(self, id_courier, id_order, time_complete):
         courier = self.get_courier(id_courier)
         if courier is None:
-            return 400
+            return 400, {"courier_id": "Courier id is not found"}
+        order = self.get_order(id_order)
+        if order is None:
+            return 400, {"order_id": "Order id is not found"}
+        try:
+            datetime.datetime.strptime(order.delivered, '%Y-%m-%dT%H:%M:%S.%fZ')
+        except BaseException:
+            return 400, {"complete_time": "Incorrect time"}
         try:
             orders = list(map(int, courier.orders.split(';')))
         except Exception:
             orders = [courier.orders]
-        if id_order in orders:
-            order = self.get_order(id_order)
-            order.delivered = time_complete
-            if courier.type == 'foot':
-                courier.earnings = courier.earnings + 500 * 2
-            elif courier.type == 'bike':
-                courier.earnings = courier.earnings + 500 * 5
-            elif courier.type == 'car':
-                courier.earnings = courier.earnings + 500 * 9
-            self.session.commit()
-            return 200
-        return 400
+        if order.delivered == '':
+            if id_order in orders:
+                order.delivered = time_complete
+                if courier.type == 'foot':
+                    courier.earnings = courier.earnings + 500 * 2
+                elif courier.type == 'bike':
+                    courier.earnings = courier.earnings + 500 * 5
+                elif courier.type == 'car':
+                    courier.earnings = courier.earnings + 500 * 9
+                self.session.commit()
+                return 200
+            return 400, {"order_delivered": "The order is delivered by another courier"}
+        return 400, {"order_delivered": f"The order is delivered in {order.delivered}"}
