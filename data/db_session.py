@@ -17,7 +17,7 @@ def global_init(db_file):
     if not db_file or not db_file.strip():
         raise Exception("Необходимо указать файл базы данных.")
 
-    conn_str = f"mysql+mysqlconnector://entrant:Xrundel2004@localhost/db"
+    conn_str = f"mysql+mysqlconnector://entrant:qwerty123@localhost/db"
 
     engine = sa.create_engine(conn_str, echo=False, pool_recycle=3600)
     __factory = orm.sessionmaker(bind=engine)

@@ -1,5 +1,5 @@
 import datetime
-from data import couriers, db_session, orders
+from .data import couriers, db_session, orders
 from datetime import time
 import json
 
