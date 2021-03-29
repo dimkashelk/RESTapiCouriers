@@ -14,12 +14,12 @@ ____
 
     a. Сначала устанавливаем mod_wsgi:
 
-    ```
+    ```shell
     sudo apt-get install libapache2-mod-wsgi python-dev
     ```
     b. Потом запускаем mod_wsgi: 
     
-    ```
+    ```shell
     sudo a2enmod wsgi
     ```
 2. Клонируем репозиторий на машину
@@ -27,25 +27,24 @@ ____
     a. В ```/var/www``` создаем папку ```AcademyYandex``` с нашим сервером.
     b. Клонируем репозиторий в эту папку 
     
-    ```
+    ```shell
     sudo git clone https://github.com/dimkashelk/AcademyYandex.git
     ```
 3. Устанавливаем необходимые пакеты
     
-    ```
+    ```shell
     sudo pip3 install -r requirements.txt
     ```
 4. Настройка виртуального хоста
 
     a. Редактируем файл конфигурации 
     
-    ```
+    ```shell
     sudo nano /etc/apache2/sites-available/AcademyYandex.conf
     ```
     
-    В него вставляем 
-    
-    ```
+    В него вставляем
+    ```commandline
     <VirtualHost *:8080>
     ServerName 84.201.132.114
     ServerAdmin entrant@84.201.132.114
@@ -67,7 +66,7 @@ ____
     
     b. Включаем виртуальный хост
     
-    ```
+    ```shell
     sudo a2ensite AcademyYandex
     ```
     
@@ -75,7 +74,7 @@ ____
     
     Для обслуживания приложений Flask сервер Apache использует файл .wsgi. перейдите в каталог приложения (```/var/www/AcademyYandex```) и создайте файл academyyandex.wsgi:
     
-    ```
+    ```shell
     cd /var/www/AcademyYandex
     sudo nano academyyandex.wsgi
     ```
@@ -112,7 +111,7 @@ ____
  
 6. Перезапуск Apache
 
-    ```
+    ```shell
     sudo service apache2 restart
     ```
 
@@ -120,8 +119,46 @@ ____
 
     По умолчанию apache2 прослушивает только 80 (для http) и 442 (для https) порты. Поэтому нам надо подключить порт 8080. Для этого редактируем файл ```/etc/apache2/ports.conf``` и добавляем строчку ```Listen 8080```. Изменяем в файле ```/etc/apache2/sites-enabled/000-default.conf``` порт ```80``` на ```8080```.
     Перезагружаем apache2.
-    ```
+    ```shell
     sudo systemctl restart apache2
+    ```
+
+8. Устанавливаем mysql 
+
+    Сначала установим необходимые пакеты:
+    ```shell
+    sudo apt install mysql-server mysql-client
+    ```   
+
+9. Настройка mysql
+   
+    Перед тем как вы сможете полноценно использовать только что установленную базу данных, необходимо выполнить ее первоначальную настройку
+    ```shell
+    sudo mysql_secure_installation
+    ```   
+    Везде можно проставить y.
+
+    Создаем таблицу с базой данных
+    ```mysql
+    CREATE DATABASE db;
+    ```
+   
+    Далее создадим пользователя:
+
+    ```mysql
+    CREATE USER entrant@'localhost' IDENTIFIED BY 'qwerty123';
+    ```
+   
+    Добавляем прав для нового пользователя.
+    
+    ```mysql
+    GRANT ALL PRIVILEGES ON db . * TO 'entrant'@'localhost';
+    ```
+
+    Сохраняем права.
+    
+    ```mysql
+    FLUSH PRIVILEGES;
     ```
 
 Сервер развернут и готов к использованию. 

@@ -19,7 +19,7 @@ def global_init(db_file):
 
     conn_str = f"mysql+mysqlconnector://entrant:Xrundel2004@localhost/db"
 
-    engine = sa.create_engine(conn_str, echo=False)
+    engine = sa.create_engine(conn_str, echo=False, pool_recycle=3600)
     __factory = orm.sessionmaker(bind=engine)
 
     from . import __all_models
